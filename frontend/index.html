@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LexiScan Auto — Legal Contract Entity Extractor</title>
+  <meta name="description" content="AI-powered legal contract analysis. Automatically extract dates, parties, amounts and termination clauses from PDF contracts using OCR and NLP." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ── Animated background ──────────────────────────────────────── -->
+<div class="bg-scene" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="grid-overlay"></div>
+</div>
+
+<!-- ── Navigation ───────────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <span class="brand-name">LexiScan <span class="accent">Auto</span></span>
+    </div>
+    <div class="nav-pills">
+      <span class="pill pill-live">● Live</span>
+      <span class="pill">NLP v1.0</span>
+      <a href="/docs" target="_blank" class="pill pill-link">API Docs ↗</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      Powered by SpaCy NER &amp; Tesseract OCR
+    </div>
+    <h1 class="hero-title">
+      Extract Legal Entities<br/>
+      <span class="gradient-text">at Machine Speed</span>
+    </h1>
+    <p class="hero-subtitle">
+      Upload any PDF contract — scanned or digital — and LexiScan Auto automatically
+      identifies <strong>Dates</strong>, <strong>Parties</strong>, <strong>Dollar Amounts</strong>,
+      and <strong>Termination Clauses</strong> in seconds.
+    </p>
+    <div class="hero-stats">
+      <div class="stat-item"><span class="stat-num">4</span><span class="stat-label">Entity Types</span></div>
+      <div class="stat-div"></div>
+      <div class="stat-item"><span class="stat-num">OCR</span><span class="stat-label">Scanned PDFs</span></div>
+      <div class="stat-div"></div>
+      <div class="stat-item"><span class="stat-num">REST</span><span class="stat-label">JSON API</span></div>
+      <div class="stat-div"></div>
+      <div class="stat-item"><span class="stat-num">🐳</span><span class="stat-label">Dockerized</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Upload Section ────────────────────────────────────────────── -->
+<section class="upload-section" id="upload">
+  <div class="container">
+    <div class="section-header">
+      <h2>Analyze Your Contract</h2>
+      <p>Upload a PDF or paste contract text below</p>
+    </div>
+
+    <!-- Tab switcher -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-file" onclick="switchTab('file')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Upload PDF
+      </button>
+      <button class="tab-btn" id="tab-text" onclick="switchTab('text')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+        Paste Text
+      </button>
+      <button class="tab-btn" id="tab-demo" onclick="runDemo()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Live Demo
+      </button>
+    </div>
+
+    <!-- File upload panel -->
+    <div class="tab-panel active" id="panel-file">
+      <div class="drop-zone" id="dropZone"
+           ondragover="event.preventDefault(); this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)">
+        <input type="file" id="fileInput" accept=".pdf,.txt" hidden onchange="handleFileSelect(event)" />
+        <div class="drop-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="drop-text">
+          <p class="drop-title">Drop your PDF here</p>
+          <p class="drop-sub">or <button class="inline-btn" onclick="document.getElementById('fileInput').click()">browse files</button></p>
+          <p class="drop-formats">Supports PDF (native &amp; scanned) · TXT · Max 50 MB</p>
+        </div>
+        <div class="file-preview" id="filePreview" hidden>
+          <div class="file-icon">📄</div>
+          <div class="file-info">
+            <span class="file-name" id="fileName"></span>
+            <span class="file-size" id="fileSize"></span>
+          </div>
+          <button class="remove-btn" onclick="clearFile()">✕</button>
+        </div>
+      </div>
+      <button class="extract-btn" id="extractBtnFile" onclick="extractFromFile()" disabled>
+        <span class="btn-icon">⚡</span> Extract Entities
+      </button>
+    </div>
+
+    <!-- Text panel -->
+    <div class="tab-panel" id="panel-text">
+      <textarea id="textInput" class="text-area" placeholder="Paste contract text here…&#10;&#10;Example: This Agreement is entered into as of January 15, 2024 by and between Acme Corporation…" rows="12"></textarea>
+      <button class="extract-btn" id="extractBtnText" onclick="extractFromText()">
+        <span class="btn-icon">⚡</span> Extract Entities
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progressWrap" hidden>
+      <div class="pipeline-steps">
+        <div class="step" id="step-upload"><div class="step-dot"></div><span>Uploading</span></div>
+        <div class="step-line"></div>
+        <div class="step" id="step-ocr"><div class="step-dot"></div><span>OCR / Parse</span></div>
+        <div class="step-line"></div>
+        <div class="step" id="step-ner"><div class="step-dot"></div><span>NER Model</span></div>
+        <div class="step-line"></div>
+        <div class="step" id="step-validate"><div class="step-dot"></div><span>Validate</span></div>
+        <div class="step-line"></div>
+        <div class="step" id="step-done"><div class="step-dot"></div><span>Complete</span></div>
+      </div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
+      <p class="progress-label" id="progressLabel">Initializing pipeline…</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Results Section ───────────────────────────────────────────── -->
+<section class="results-section" id="results" hidden>
+  <div class="container">
+
+    <!-- Summary bar -->
+    <div class="summary-bar" id="summaryBar">
+      <div class="summary-meta" id="summaryMeta"></div>
+      <div class="summary-counts" id="summaryCounts"></div>
+    </div>
+
+    <!-- Entity cards grid -->
+    <div class="entities-grid">
+
+      <div class="entity-card card-date" id="card-dates">
+        <div class="card-header">
+          <div class="card-icon">📅</div>
+          <div>
+            <h3 class="card-title">Contract Dates</h3>
+            <span class="card-count" id="count-dates">0 found</span>
+          </div>
+        </div>
+        <ul class="entity-list" id="list-dates"></ul>
+      </div>
+
+      <div class="entity-card card-party" id="card-parties">
+        <div class="card-header">
+          <div class="card-icon">🏛️</div>
+          <div>
+            <h3 class="card-title">Parties</h3>
+            <span class="card-count" id="count-parties">0 found</span>
+          </div>
+        </div>
+        <ul class="entity-list" id="list-parties"></ul>
+      </div>
+
+      <div class="entity-card card-amount" id="card-amounts">
+        <div class="card-header">
+          <div class="card-icon">💰</div>
+          <div>
+            <h3 class="card-title">Dollar Amounts</h3>
+            <span class="card-count" id="count-amounts">0 found</span>
+          </div>
+        </div>
+        <ul class="entity-list" id="list-amounts"></ul>
+      </div>
+
+      <div class="entity-card card-term full-width" id="card-termination">
+        <div class="card-header">
+          <div class="card-icon">⚖️</div>
+          <div>
+            <h3 class="card-title">Termination Clauses</h3>
+            <span class="card-count" id="count-term">0 found</span>
+          </div>
+        </div>
+        <ul class="entity-list" id="list-term"></ul>
+      </div>
+
+    </div>
+
+    <!-- JSON viewer -->
+    <div class="json-panel">
+      <div class="json-header">
+        <span class="json-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Raw JSON Response
+        </span>
+        <button class="copy-btn" id="copyBtn" onclick="copyJSON()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <pre class="json-body" id="jsonBody"></pre>
+    </div>
+
+    <!-- Reset -->
+    <div class="reset-row">
+      <button class="reset-btn" onclick="resetUI()">← Analyze Another Contract</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <p>LexiScan <strong>Auto</strong> · Built by <span class="accent">Zaalima Development Pvt. Ltd.</span></p>
+    <p class="footer-sub">SpaCy NER · Tesseract OCR · FastAPI · Docker</p>
+  </div>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

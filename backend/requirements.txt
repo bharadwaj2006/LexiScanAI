@@ -1,0 +1,17 @@
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-multipart==0.0.12
+python-dotenv==1.0.1
+
+# PDF & OCR
+PyMuPDF==1.25.5
+pdf2image==1.17.0
+Pillow>=10.0
+pytesseract==0.3.13
+
+# NLP / NER  (let pip resolve the cp314-compatible wheel)
+spacy>=3.8,<4.0
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+
+# Date parsing (validator)
+python-dateutil==2.9.0
