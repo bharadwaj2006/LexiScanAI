@@ -2,6 +2,8 @@
 
 **Legal Contract Entity Extractor** — AI-powered NER pipeline for financial law firms.
 
+[![CI Pipeline](https://github.com/bharadwaj2006/LexiScanAI/actions/workflows/ci.yml/badge.svg)](https://github.com/bharadwaj2006/LexiScanAI/actions/workflows/ci.yml)
+
 > Automatically extracts **Dates**, **Parties**, **Dollar Amounts**, and **Termination Clauses** from any PDF contract.
 
 ---
@@ -99,6 +101,17 @@ cd backend
 python ner/train.py
 # Outputs model to backend/models/legal_ner/
 # F1 score printed at end of training
+```
+
+---
+
+## Testing
+
+Run the included unit tests using `pytest` (ensure you're in the `backend` directory):
+```bash
+cd backend
+pip install pytest
+pytest tests/
 ```
 
 ---
