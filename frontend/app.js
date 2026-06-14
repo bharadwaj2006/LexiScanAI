@@ -77,7 +77,7 @@ async function runDemo() {
   showProgress();
   animatePipeline();
   try {
-    const res = await fetch(`${API_BASE}/api/demo`);
+    const res = await authFetch(`${API_BASE}/api/demo`);
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     finishProgress();
@@ -92,7 +92,7 @@ async function runExtraction(formData) {
   showProgress();
   animatePipeline();
   try {
-    const res = await fetch(`${API_BASE}/api/extract`, {
+    const res = await authFetch(`${API_BASE}/api/extract`, {
       method: "POST",
       body: formData,
     });

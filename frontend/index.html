@@ -8,6 +8,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .nav-user {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .user-chip {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+      background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.28);
+      color: #c084fc;
+    }
+    .user-chip svg { flex-shrink: 0; }
+    .logout-btn {
+      padding: 5px 14px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.28);
+      color: #f87171; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .logout-btn:hover { background: rgba(239,68,68,0.22); }
+  </style>
 </head>
 <body>
 
@@ -32,6 +50,13 @@
       <span class="pill pill-live">● Live</span>
       <span class="pill">NLP v1.0</span>
       <a href="/docs" target="_blank" class="pill pill-link">API Docs ↗</a>
+    </div>
+    <div class="nav-user">
+      <div class="user-chip">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span id="nav-username">—</span>
+      </div>
+      <button class="logout-btn" onclick="logout()" id="logout-btn">Logout</button>
     </div>
   </div>
 </nav>
@@ -234,6 +259,18 @@
   </div>
 </footer>
 
+<script src="/static/auth.js"></script>
 <script src="/static/app.js"></script>
+<script>
+  // Auth guard — redirect to login if not authenticated
+  requireAuth();
+  // Show current username in navbar
+  (function() {
+    const u = getStoredUser();
+    if (u && u.username) {
+      document.getElementById('nav-username').textContent = u.username;
+    }
+  })();
+</script>
 </body>
 </html>

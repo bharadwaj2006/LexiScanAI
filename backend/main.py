@@ -3,10 +3,13 @@ import time
 import logging
 from typing import Optional
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +28,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Auth ─────────────────────────────────────────────────────────────────────
+from auth.router import router as auth_router
+from auth.jwt_utils import get_current_user
+from auth.users import seed_default_admin
+
+app.include_router(auth_router)
+
 # ── Serve frontend static files ──────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
@@ -35,6 +45,10 @@ if os.path.exists(FRONTEND_DIR):
 
 @app.on_event("startup")
 async def startup_event():
+    # Seed default admin account
+    seed_default_admin()
+    logger.info("Default admin account seeded ✓")
+
     logger.info("Pre-loading NER model …")
     from ner.model import get_nlp_model
     get_nlp_model()
@@ -51,6 +65,14 @@ async def root():
     return {"message": "LexiScan Auto API", "docs": "/docs"}
 
 
+@app.get("/login", include_in_schema=False)
+async def login_page():
+    login_html = os.path.join(FRONTEND_DIR, "login.html")
+    if os.path.exists(login_html):
+        return FileResponse(login_html)
+    return {"message": "Login page not found"}
+
+
 @app.get("/health")
 async def health():
     return {"status": "healthy", "service": "LexiScan Auto", "version": "1.0.0"}
@@ -60,6 +82,7 @@ async def health():
 async def extract(
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user),
 ):
     start = time.time()
     ocr_used = False
@@ -115,7 +138,7 @@ async def extract(
 
 
 @app.get("/api/demo")
-async def demo():
+async def demo(current_user: dict = Depends(get_current_user)):
     """Run extraction on a built-in sample contract (no upload needed)."""
     sample = """SERVICE AGREEMENT
 
