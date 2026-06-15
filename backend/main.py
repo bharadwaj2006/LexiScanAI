@@ -45,9 +45,9 @@ if os.path.exists(FRONTEND_DIR):
 
 @app.on_event("startup")
 async def startup_event():
-    # Seed default admin account
+    # Create tables and seed default accounts in PostgreSQL
     seed_default_admin()
-    logger.info("Default admin account seeded ✓")
+    logger.info("Database tables created and default accounts seeded ✓")
 
     logger.info("Pre-loading NER model …")
     from ner.model import get_nlp_model

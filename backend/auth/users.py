@@ -1,67 +1,29 @@
-"""User store backed by a local JSON file."""
-import json
-import os
+"""User store backed by PostgreSQL via SQLAlchemy."""
 from datetime import datetime, timezone
+
 import bcrypt
+from sqlalchemy.orm import Session
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
-USERS_FILE = os.path.join(DATA_DIR, "users.json")
-
-
-def _load() -> dict:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    if not os.path.exists(USERS_FILE):
-        return {}
-    with open(USERS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+from db import SessionLocal, engine
+from models import Base, User
 
 
-def _save(users: dict) -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(users, f, indent=2)
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
 
-
-def seed_default_admin() -> None:
-    """Ensure a default admin account exists on first run."""
-    users = _load()
-    if "admin" not in users:
-        # Hash "admin123"
-        hashed = bcrypt.hashpw("admin123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-        users["admin"] = {
-            "username": "admin",
-            "email": "admin@lexiscan.local",
-            "hashed_password": hashed,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
-        _save(users)
-
-
-def get_user(username: str) -> dict | None:
-    users = _load()
-    return users.get(username)
-
-
-def create_user(username: str, email: str, password: str) -> dict:
-    users = _load()
-    if username in users:
-        raise ValueError(f"Username '{username}' is already taken.")
-    
-    # Check if email is already taken
-    for u in users.values():
-        if u.get("email") == email:
-            raise ValueError(f"Email '{email}' is already registered.")
-
-    now = datetime.now(timezone.utc).isoformat()
-    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-    users[username] = {
-        "username": username,
-        "email": email,
-        "hashed_password": hashed,
-        "created_at": now,
+def _user_to_dict(user: User) -> dict:
+    """Convert a User ORM row to the dict shape the rest of the app expects."""
+    return {
+        "username": user.username,
+        "email": user.email,
+        "hashed_password": user.password_hash,
+        "created_at": user.created_at.isoformat(),
     }
-    _save(users)
-    return {"username": username, "email": email, "created_at": now}
+
+
+def _hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
@@ -69,6 +31,84 @@ def verify_password(plain: str, hashed: str) -> bool:
         return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
     except Exception:
         return False
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def seed_default_admin() -> None:
+    """Create the users table (if needed) and seed default + Bharadwaj accounts."""
+    Base.metadata.create_all(bind=engine)
+
+    db: Session = SessionLocal()
+    try:
+        _ensure_user(
+            db,
+            username="admin",
+            email="admin@lexiscan.local",
+            password="admin123",
+        )
+        _ensure_user(
+            db,
+            username="Bharadwaj",
+            email="bharadwaj2701@gmail.com",
+            password="Bharadwaj@1234",
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def _ensure_user(db: Session, username: str, email: str, password: str) -> None:
+    """Insert a user only if neither the username nor email already exists."""
+    exists = (
+        db.query(User)
+        .filter((User.username == username) | (User.email == email))
+        .first()
+    )
+    if exists:
+        return
+    db.add(
+        User(
+            username=username,
+            email=email,
+            password_hash=_hash_password(password),
+            created_at=datetime.now(timezone.utc),
+        )
+    )
+
+
+def get_user(username: str) -> dict | None:
+    db: Session = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == username).first()
+        return _user_to_dict(user) if user else None
+    finally:
+        db.close()
+
+
+def create_user(username: str, email: str, password: str) -> dict:
+    db: Session = SessionLocal()
+    try:
+        if db.query(User).filter(User.username == username).first():
+            raise ValueError(f"Username '{username}' is already taken.")
+        if db.query(User).filter(User.email == email).first():
+            raise ValueError(f"Email '{email}' is already registered.")
+
+        now = datetime.now(timezone.utc)
+        user = User(
+            username=username,
+            email=email,
+            password_hash=_hash_password(password),
+            created_at=now,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return {"username": user.username, "email": user.email, "created_at": user.created_at.isoformat()}
+    finally:
+        db.close()
 
 
 def authenticate_user(username: str, password: str) -> dict | None:
