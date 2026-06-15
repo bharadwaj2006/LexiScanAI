@@ -269,6 +269,9 @@
     const u = getStoredUser();
     if (u && u.username) {
       document.getElementById('nav-username').textContent = u.username;
+      if (u.email) {
+        document.querySelector('.user-chip').title = `Logged in as ${u.email}`;
+      }
     }
   })();
 </script>

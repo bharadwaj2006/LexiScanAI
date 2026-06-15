@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 async def register(body: UserCreate):
     """Create a new user account."""
     try:
-        user = create_user(body.username, body.password)
+        user = create_user(body.username, body.email, body.password)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
     return user
@@ -43,5 +43,7 @@ async def me(current_user: dict = Depends(get_current_user)):
     """Return the currently authenticated user's profile."""
     return {
         "username": current_user["username"],
+        "email": current_user.get("email", ""),
         "created_at": current_user.get("created_at", ""),
     }
+

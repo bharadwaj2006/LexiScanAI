@@ -342,6 +342,20 @@
         </div>
 
         <div class="field">
+          <label for="reg-email">Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </span>
+            <input type="email" id="reg-email" placeholder="Enter your email address" autocomplete="email"
+                   onkeydown="if(event.key==='Enter') doRegister()" />
+          </div>
+        </div>
+
+        <div class="field">
           <label for="reg-password">Password</label>
           <div class="input-wrap">
             <span class="input-icon">
@@ -462,7 +476,20 @@
       }
 
       setToken(data.access_token);
-      setStoredUser({ username });
+
+      // Fetch user profile info (including email) to store locally
+      try {
+        const meRes = await authFetch('/api/auth/me');
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          setStoredUser(meData);
+        } else {
+          setStoredUser({ username });
+        }
+      } catch (meErr) {
+        setStoredUser({ username });
+      }
+
       showAlert('login-alert', '✓ Signed in! Redirecting…', 'success');
       setTimeout(() => window.location.replace('/'), 700);
 
@@ -476,16 +503,22 @@
   // ── Register ──────────────────────────────────────────────────────
   async function doRegister() {
     const username = document.getElementById('reg-username').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
     const confirm  = document.getElementById('reg-confirm').value;
     clearAlerts();
 
-    if (!username || !password || !confirm) {
+    if (!username || !email || !password || !confirm) {
       showAlert('register-alert', 'Please fill in all fields.');
       return;
     }
     if (username.length < 3) {
       showAlert('register-alert', 'Username must be at least 3 characters.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showAlert('register-alert', 'Please enter a valid email address.');
       return;
     }
     if (password.length < 6) {
@@ -505,7 +538,7 @@
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, email, password }),
       });
 
       const data = await res.json();
@@ -523,7 +556,20 @@
       const loginData = await loginRes.json();
       if (loginRes.ok) {
         setToken(loginData.access_token);
-        setStoredUser({ username });
+        
+        // Fetch full profile info to store email locally
+        try {
+          const meRes = await authFetch('/api/auth/me');
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            setStoredUser(meData);
+          } else {
+            setStoredUser({ username, email });
+          }
+        } catch (meErr) {
+          setStoredUser({ username, email });
+        }
+
         showAlert('register-alert', '✓ Account created! Redirecting…', 'success');
         setTimeout(() => window.location.replace('/'), 800);
       } else {

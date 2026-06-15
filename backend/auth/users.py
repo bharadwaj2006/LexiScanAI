@@ -2,12 +2,10 @@
 import json
 import os
 from datetime import datetime, timezone
-from passlib.context import CryptContext
+import bcrypt
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
-
-pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def _load() -> dict:
@@ -28,9 +26,12 @@ def seed_default_admin() -> None:
     """Ensure a default admin account exists on first run."""
     users = _load()
     if "admin" not in users:
+        # Hash "admin123"
+        hashed = bcrypt.hashpw("admin123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         users["admin"] = {
             "username": "admin",
-            "hashed_password": pwd_ctx.hash("admin123"),
+            "email": "admin@lexiscan.local",
+            "hashed_password": hashed,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         _save(users)
@@ -41,22 +42,33 @@ def get_user(username: str) -> dict | None:
     return users.get(username)
 
 
-def create_user(username: str, password: str) -> dict:
+def create_user(username: str, email: str, password: str) -> dict:
     users = _load()
     if username in users:
         raise ValueError(f"Username '{username}' is already taken.")
+    
+    # Check if email is already taken
+    for u in users.values():
+        if u.get("email") == email:
+            raise ValueError(f"Email '{email}' is already registered.")
+
     now = datetime.now(timezone.utc).isoformat()
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     users[username] = {
         "username": username,
-        "hashed_password": pwd_ctx.hash(password),
+        "email": email,
+        "hashed_password": hashed,
         "created_at": now,
     }
     _save(users)
-    return {"username": username, "created_at": now}
+    return {"username": username, "email": email, "created_at": now}
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_ctx.verify(plain, hashed)
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def authenticate_user(username: str, password: str) -> dict | None:
